@@ -889,24 +889,39 @@ const Contact = () => {
 
 // Admin Dashboard
 const AdminLogin = ({ onLogin }) => {
+  const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (res.ok) {
+    setError('');
+    setLoading(true);
+    
+    const endpoint = isRegistering ? '/api/auth/register' : '/api/auth/login';
+    
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
       const data = await res.json();
-      localStorage.setItem('adminToken', data.token);
-      onLogin(data.user);
-    } else {
-      setError('Invalid credentials');
+      
+      if (res.ok) {
+        localStorage.setItem('adminToken', data.token);
+        onLogin(data.user);
+      } else {
+        setError(data.message || 'Authentication failed');
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -921,7 +936,7 @@ const AdminLogin = ({ onLogin }) => {
       <div className="max-w-md w-full bg-zinc-900 p-10 rounded-3xl border border-white/10 shadow-2xl">
         <div className="text-center mb-10">
           <Logo className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white">Login</h1>
+          <h1 className="text-2xl font-bold text-white">{isRegistering ? 'Create Account' : 'Login'}</h1>
           <p className="text-white/50 text-sm">FAAM SIGNATURE CAR</p>
         </div>
         
@@ -947,10 +962,26 @@ const AdminLogin = ({ onLogin }) => {
               required
             />
           </div>
-          <button type="submit" className="w-full bg-gold text-black font-bold py-4 rounded-lg hover:bg-gold/90 transition-colors">
-            Login
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-gold text-black font-bold py-4 rounded-lg hover:bg-gold/90 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : (isRegistering ? 'Create Account' : 'Login')}
           </button>
         </form>
+
+        <div className="mt-8 text-center">
+          <button 
+            onClick={() => {
+              setIsRegistering(!isRegistering);
+              setError('');
+            }}
+            className="text-gold text-sm font-medium hover:underline"
+          >
+            {isRegistering ? 'Already have an account? Login' : "Don't have an account? Create one"}
+          </button>
+        </div>
       </div>
     </div>
   );

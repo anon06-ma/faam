@@ -138,6 +138,42 @@ async function startServer() {
     res.status(401).json({ message: "Invalid credentials" });
   });
 
+  app.post("/api/auth/register", async (req, res) => {
+    const { email, password } = req.body;
+    
+    if (!supabase) {
+      return res.status(503).json({ message: "Database not configured" });
+    }
+
+    try {
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{ email, password: hashedPassword, role: 'Admin' }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const token = jwt.sign({ email, role: 'Admin' }, JWT_SECRET, { expiresIn: '24h' });
+      res.status(201).json({ token, user: { email, role: 'Admin' } });
+    } catch (err: any) {
+      console.error("Registration error:", err.message);
+      res.status(500).json({ message: "Error creating account" });
+    }
+  });
+
   // Vehicles
   app.get("/api/vehicles", async (req, res) => {
     if (supabase) {

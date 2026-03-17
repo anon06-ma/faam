@@ -1,0 +1,7 @@
+{
+  "name": "Remix: FAAM SIGNATURE CAR",
+  "description": "Premium car rental platform with bilingual support and admin dashboard.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

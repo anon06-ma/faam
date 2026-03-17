@@ -85,6 +85,12 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Request logger
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+  });
+
   // Auth Middleware
   const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
@@ -99,6 +105,10 @@ async function startServer() {
   };
 
   // API Routes
+  app.get("/api/test", (req, res) => {
+    res.json({ message: "API is working" });
+  });
+
   app.get("/api/health/db", async (req, res) => {
     if (!supabase) {
       return res.json({ connected: false, reason: "Supabase credentials missing (check your .env file)" });
@@ -114,7 +124,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post(["/api/auth/login", "/api/auth/login/"], async (req, res) => {
     const { email, password } = req.body;
     
     if (supabase) {
@@ -138,7 +148,8 @@ async function startServer() {
     res.status(401).json({ message: "Invalid credentials" });
   });
 
-  app.post("/api/auth/register", async (req, res) => {
+  app.post(["/api/auth/register", "/api/auth/register/"], async (req, res) => {
+    console.log("Registration request received:", req.body);
     const { email, password } = req.body;
     
     if (!supabase) {

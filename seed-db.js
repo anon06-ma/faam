@@ -1,6 +1,7 @@
 import pkg from 'pg';
 const { Client } = pkg;
 import 'dotenv/config';
+import bcrypt from 'bcryptjs';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -33,6 +34,17 @@ async function seed() {
         INSERT INTO site_content (content)
         VALUES ('{"hero": {"en": {"title": "Drive Your Journey in Style", "subtitle": "Premium car rental for tourists and business travelers in Morocco."}, "fr": {"title": "Conduisez avec Style", "subtitle": "Location de voitures premium pour touristes et voyageurs d''affaires au Maroc."}}, "about": {"en": "FAAM Rent Car provides reliable and comfortable vehicles for your stay in Morocco.", "fr": "FAAM Rent Car propose des véhicules fiables et confortables pour votre séjour au Maroc."}}')
       `);
+    }
+
+    // Check if admin exists
+    const userRes = await client.query("SELECT COUNT(*) FROM users WHERE email = 'admin@faam.com'");
+    if (parseInt(userRes.rows[0].count) === 0) {
+      console.log("Seeding admin user...");
+      const hashedPassword = await bcrypt.hash("Faam2026", 10);
+      await client.query(`
+        INSERT INTO users (email, password, role)
+        VALUES ('admin@faam.com', $1, 'Super Admin')
+      `, [hashedPassword]);
     }
 
     console.log("Seeding complete!");

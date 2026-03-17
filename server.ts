@@ -79,12 +79,6 @@ let mockSiteContent = {
   }
 };
 
-const adminUser = {
-  email: "admin@faam.com",
-  password: bcrypt.hashSync("Faam2026", 10),
-  role: "Super Admin"
-};
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -120,12 +114,29 @@ async function startServer() {
     }
   });
 
-  app.post("/api/auth/login", (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
-    if (email === adminUser.email && bcrypt.compareSync(password, adminUser.password)) {
-      const token = jwt.sign({ email, role: adminUser.role }, JWT_SECRET, { expiresIn: '24h' });
-      return res.json({ token, user: { email, role: adminUser.role } });
+    
+    if (supabase) {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (!error && user && bcrypt.compareSync(password, user.password)) {
+        const token = jwt.sign({ email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        return res.json({ token, user: { email, role: user.role } });
+      }
+    } else {
+      // Fallback for local development if supabase is not configured
+      // (Though we just configured it, keeping a simple fallback for safety)
+      if (email === "admin@faam.com" && password === "Faam2026") {
+        const token = jwt.sign({ email, role: "Super Admin" }, JWT_SECRET, { expiresIn: '24h' });
+        return res.json({ token, user: { email, role: "Super Admin" } });
+      }
     }
+    
     res.status(401).json({ message: "Invalid credentials" });
   });
 

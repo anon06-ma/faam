@@ -72,6 +72,18 @@ async function setup() {
     `);
     console.log("Created site_content table");
 
+    // Create users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    console.log("Created users table");
+
     console.log("Database setup complete!");
   } catch (err) {
     console.error("Error setting up database:", err);

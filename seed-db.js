@@ -37,13 +37,18 @@ async function seed() {
     }
 
     // Check if admin exists
-    const userRes = await client.query("SELECT COUNT(*) FROM users WHERE email = 'admin@faam.com'");
-    if (parseInt(userRes.rows[0].count) === 0) {
+    const userRes = await client.query("SELECT * FROM users WHERE email = 'admin@faam.com'");
+    const hashedPassword = await bcrypt.hash("Faam2026", 10);
+    if (userRes.rows.length === 0) {
       console.log("Seeding admin user...");
-      const hashedPassword = await bcrypt.hash("Faam2026", 10);
       await client.query(`
         INSERT INTO users (email, password, role)
         VALUES ('admin@faam.com', $1, 'Super Admin')
+      `, [hashedPassword]);
+    } else {
+      console.log("Updating admin password...");
+      await client.query(`
+        UPDATE users SET password = $1 WHERE email = 'admin@faam.com'
       `, [hashedPassword]);
     }
 

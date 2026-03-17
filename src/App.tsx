@@ -947,7 +947,7 @@ const AdminLogin = ({ onLogin }) => {
               required
             />
           </div>
-          <button className="w-full bg-gold text-black font-bold py-4 rounded-lg hover:bg-gold/90 transition-colors">
+          <button type="submit" className="w-full bg-gold text-black font-bold py-4 rounded-lg hover:bg-gold/90 transition-colors">
             Login
           </button>
         </form>

@@ -129,8 +129,6 @@ async function startServer() {
         return res.json({ token, user: { email, role: user.role } });
       }
     } else {
-      // Fallback for local development if supabase is not configured
-      // (Though we just configured it, keeping a simple fallback for safety)
       if (email === "admin@faam.com" && password === "Faam2026") {
         const token = jwt.sign({ email, role: "Super Admin" }, JWT_SECRET, { expiresIn: '24h' });
         return res.json({ token, user: { email, role: "Super Admin" } });

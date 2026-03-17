@@ -910,7 +910,15 @@ const AdminLogin = ({ onLogin }) => {
         body: JSON.stringify({ email, password })
       });
       
-      const data = await res.json();
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("Server returned non-JSON response");
+      }
       
       if (res.ok) {
         localStorage.setItem('adminToken', data.token);
@@ -918,8 +926,11 @@ const AdminLogin = ({ onLogin }) => {
       } else {
         setError(data.message || 'Authentication failed');
       }
-    } catch (err) {
-      setError('Connection error. Please try again.');
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      setError(err.message === "Server returned non-JSON response" 
+        ? "Server error (Non-JSON). Please check server logs." 
+        : "Connection error. Please try again.");
     } finally {
       setLoading(false);
     }

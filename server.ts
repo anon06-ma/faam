@@ -142,18 +142,22 @@ async function startServer() {
     const { email, password } = req.body;
     
     if (!supabase) {
-      return res.status(503).json({ message: "Database not configured" });
+      return res.status(503).json({ message: "Database not configured. Please set up Supabase environment variables." });
     }
 
     try {
       // Check if user already exists
-      const { data: existingUser } = await supabase
+      const { data: existingUsers, error: fetchError } = await supabase
         .from('users')
         .select('email')
-        .eq('email', email)
-        .single();
+        .eq('email', email);
 
-      if (existingUser) {
+      if (fetchError) {
+        console.error("Supabase fetch error:", fetchError.message);
+        return res.status(500).json({ message: "Error checking existing users", error: fetchError.message });
+      }
+
+      if (existingUsers && existingUsers.length > 0) {
         return res.status(400).json({ message: "User already exists" });
       }
 
@@ -164,13 +168,16 @@ async function startServer() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert error:", error.message);
+        return res.status(400).json({ message: error.message });
+      }
 
       const token = jwt.sign({ email, role: 'Admin' }, JWT_SECRET, { expiresIn: '24h' });
       res.status(201).json({ token, user: { email, role: 'Admin' } });
     } catch (err: any) {
       console.error("Registration error:", err.message);
-      res.status(500).json({ message: "Error creating account" });
+      res.status(500).json({ message: "Internal server error during registration", error: err.message });
     }
   });
 
@@ -328,6 +335,12 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Global error handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Global error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

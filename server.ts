@@ -125,27 +125,43 @@ async function startServer() {
   });
 
   app.post(["/api/auth/login", "/api/auth/login/"], async (req, res) => {
-    const { email, password } = req.body;
-    
-    if (supabase) {
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+    try {
+      const { email, password } = req.body;
+      console.log("Login attempt:", email);
+      
+      if (supabase) {
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', email)
+          .single();
 
-      if (!error && user && bcrypt.compareSync(password, user.password)) {
-        const token = jwt.sign({ email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-        return res.json({ token, user: { email, role: user.role } });
+        if (error) {
+          console.error("Supabase login error:", error.message);
+          // If table doesn't exist, fall back to mock or return error
+          if (error.code === 'PGRST116') { // Not found
+             // Continue to invalid credentials
+          } else {
+            return res.status(500).json({ message: "Database error during login", error: error.message });
+          }
+        }
+
+        if (user && bcrypt.compareSync(password, user.password)) {
+          const token = jwt.sign({ email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+          return res.json({ token, user: { email, role: user.role } });
+        }
+      } else {
+        if (email === "admin@faam.com" && password === "Faam2026") {
+          const token = jwt.sign({ email, role: "Super Admin" }, JWT_SECRET, { expiresIn: '24h' });
+          return res.json({ token, user: { email, role: "Super Admin" } });
+        }
       }
-    } else {
-      if (email === "admin@faam.com" && password === "Faam2026") {
-        const token = jwt.sign({ email, role: "Super Admin" }, JWT_SECRET, { expiresIn: '24h' });
-        return res.json({ token, user: { email, role: "Super Admin" } });
-      }
+      
+      res.status(401).json({ message: "Invalid credentials" });
+    } catch (err: any) {
+      console.error("Login route crash:", err);
+      res.status(500).json({ message: "Internal server error during login", error: err.message });
     }
-    
-    res.status(401).json({ message: "Invalid credentials" });
   });
 
   app.post(["/api/auth/register", "/api/auth/register/"], async (req, res) => {
@@ -330,6 +346,12 @@ async function startServer() {
     }
     mockSiteContent = { ...mockSiteContent, ...req.body };
     res.json(mockSiteContent);
+  });
+
+  // Catch-all for unmatched API routes
+  app.all("/api/*", (req, res) => {
+    console.warn(`404 API Route: ${req.method} ${req.url}`);
+    res.status(404).json({ message: `API route not found: ${req.method} ${req.url}` });
   });
 
   // Vite middleware for development
